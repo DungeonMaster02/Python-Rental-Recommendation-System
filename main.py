@@ -1,5 +1,7 @@
-import scrapper
-import data_processing
+from fastapi import FastAPI
 
-html = data_processing.get_data()
-rent_details = data_processing.get_rent()
+app = FastAPI() # this function creates a FastAPI application instance
+@app.get("/") # GET endpoint at the root URL
+async def root():
+    return {"message": "Hello World"}
+
