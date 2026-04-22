@@ -2,16 +2,19 @@
 
 A comprehensive data-driven housing recommendation system for USC students, integrating rental listings, geospatial crime analysis, amenities data, and predictive safety modeling.
 
+**Status**: ✅ **Project Complete**
+
 ## 📌 Overview
 
 This project helps USC students make smarter housing decisions by analyzing real-world data across Los Angeles. The system evaluates rental neighborhoods using:
 
-* **Safety Predictions** - Machine learning models predicting crime trends
+* **Safety Predictions** - Machine learning models predicting crime trends through 2026
 * **Convenience Scores** - Proximity to amenities (hospitals, transit, restaurants, parks, etc.)
 * **Distance Assessment** - Walking/transit distance to USC campus
 * **Neighborhood Grids** - 400m grid-based geographical analysis
+* **Interactive Web UI** - React + TypeScript frontend with map visualization
 
-Users can explore housing options with detailed neighborhood safety forecasts and amenity accessibility scores.
+Users can explore housing options with detailed safety forecasts and amenity accessibility scores via the interactive web interface.
 
 ---
 
@@ -49,10 +52,10 @@ Users can explore housing options with detailed neighborhood safety forecasts an
    - Tables: listings, crime, grid, monthly_crime
    - Efficient spatial queries and monthly aggregations
 
-6. **Frontend** (`frontend/`, `main.py`)
-   - FastAPI REST API
-   - Interactive housing search and filtering
-   - Real-time neighborhood scoring
+6. **Application Layer** (`frontend/`, `main.py`)
+   - Flask REST API + SPA static hosting
+   - React + TypeScript frontend (Vite build)
+   - Interactive housing search, map exploration, and recommendation UI
 
 ---
 
@@ -65,6 +68,7 @@ Users can explore housing options with detailed neighborhood safety forecasts an
 
 2. **Amenities Data**
    - Source: OpenStreetMap (via `osmnx`)
+   - Current pipeline does **not** use Google Places API
    - Categories: hospitals, pharmacies, supermarkets, transit stations, restaurants, parks, laundry
    - Weighted scoring for convenience
 
@@ -122,26 +126,34 @@ Each listing receives normalized scores (0-100):
 
 ```
 code/
-├── main.py                      # FastAPI entry point
-├── safety_main.py              # Safety model training pipeline
-├── data_processing.py           # Listing & convenience processing
-├── crime_data_processing.py    # Crime aggregation & monthly stats
-├── safety_model_prepare.py     # Data prep for XGBoost
-├── safety_modeling.py          # XGBoost model training
-├── scraper.py                  # Craigslist scraper
-├── connection.py               # PostgreSQL connection
-├── db_execution.py             # Database operations
-├── map_dividision.py           # Grid processing utilities
-├── frontend/                   # Frontend assets
+├── main.py                           # Flask entry point + API routes
+├── safety_main.py                   # Safety model training pipeline
+├── data_processing.py               # Listing & convenience scoring
+├── crime_data_processing.py         # Crime aggregation & monthly stats
+├── safety_model_prepare.py          # Feature engineering for XGBoost
+├── safety_modeling.py               # XGBoost training & validation
+├── scraper.py                       # Basic Craigslist scraper
+├── selenium_scraper.py              # Advanced Selenium scraper
+├── safetymap.py                     # Grid safety data utilities
+├── connection.py                    # PostgreSQL connection
+├── db_execution.py                  # Database CRUD operations
+├── map_dividision.py                # Grid processing utilities
+├── frontend/                        # React + TypeScript UI
+│   ├── src/                         # React components
+│   ├── dist/                        # Built static files (Vite)
+│   └── package.json                 # Node dependencies
+└── cache/                           # OSM cached data
+    └── *.json                       # Pre-scraped amenities
 
 data/
-├── Crime_Data_from_2010_2024.csv        # Crime dataset
-├── Static_listing_data.txt              # Craigslist cache
-├── City_Boundary/                       # LA boundary shapefile
-├── LA_400m_grid.shp                     # Grid divisions
-├── usc_campus/                          # Campus location
-├── Building_Footprints-shp/             # Building data
-└── osm_chunks/                          # OSM amenities cache
+├── Crime_Data_from_2010_2024.csv    # Full crime dataset (2010-2024)
+├── Crime_Data_from_2010_to_2019_*.csv  # Pre-split historical
+├── Crime_Data_from_2020_to_2024_*.csv  # Pre-split recent
+├── City_Boundary/                   # LA city boundary
+├── LA_400m_grid.shp                 # 400m grid divisions
+├── usc_campus/                      # USC campus boundary
+├── Building_Footprints-shp/         # LA building footprints
+└── osm_chunks/                      # OSM amenities chunks
 
 output/
 ├── final_grid_safety_2026.csv           # Safety predictions
@@ -161,7 +173,7 @@ output/
 ### Dependencies
 ```bash
 pip install pandas geopandas osmnx xgboost beautifulsoup4 
-pip install psycopg2-binary python-dotenv fastapi
+pip install psycopg2-binary python-dotenv flask
 ```
 
 ### Configuration
@@ -194,19 +206,39 @@ python crime_data_processing.py
 # 3. Prepare data for modeling
 python safety_model_prepare.py
 
-# 4. Train safety models and generate forecasts
+# 4. Train safety models and generate forecasts (generates 2025-2026 predictions)
 python safety_main.py
+
+# 5. (Optional) Validate models with cross-validation
+python safety_modeling.py
 ```
 
 ### API Server
 ```bash
-python main.py  # Starts FastAPI on http://localhost:8000
+python main.py
 ```
 
-### Recommendations Query
-```python
-# Get top housing recommendations with personalized weights
-GET /recommendations?safety=0.4&convenience=0.3&distance=0.2&price=0.1
+Server configuration (in `main.py`):
+- Host: `127.0.0.1`
+- Port: `5000`
+- Frontend served from `code/frontend/dist` (built with Vite)
+
+### REST API Endpoints
+
+| Endpoint | Method | Description | Parameters |
+|----------|--------|-------------|-----------|
+| `/api/health` | GET | Server health check | - |
+| `/api/listings` | GET | Get all rental listings | `limit` (int, default: 100) |
+| `/api/recommend` | GET | Get ranked recommendations | `safety`, `convenience`, `distance`, `affordability` (weights, 0.0-1.0) |
+| `/api/grid-safety` | GET | Get grid safety scores by year | - |
+| `/api/grid-safety-geojson` | GET | Get GeoJSON for map visualization | - |
+| `/api/home-stats` | GET | Homepage statistics | - |
+| `/api/model-metrics` | GET | ML model validation metrics | - |
+
+**Example Request**:
+```bash
+# Get top 50 recommendations with custom weights
+curl "http://localhost:5000/api/recommend?safety=0.4&convenience=0.3&distance=0.2&affordability=0.1&limit=50"
 ```
 
 ---
@@ -224,11 +256,36 @@ GET /recommendations?safety=0.4&convenience=0.3&distance=0.2&price=0.1
 
 ## 📊 Model Performance
 
-**XGBoost Models** trained on 2010-2024 monthly crime data:
-- Target variables: priority_crime_target_next, violence_crime_target_next
-- Features: lagged crime counts, seasonal indicators, grid characteristics
-- Train/Test split: Historical (2020-2024 forecast window)
-- Hyperparameters: max_depth=4, eta=0.03, num_boost_round=600
+**XGBoost Time-Series Models** trained on 2010-2024 monthly crime data:
+
+**Architecture**:
+- **Two separate models**: Priority crimes (property) vs Violence crimes
+- **Training data**: 2010-2024 monthly crime counts aggregated by 400m grid
+- **Prediction period**: Monthly forecasts for 2025-2026 (24 months)
+
+**Features Engineering**:
+- Lagged crime counts: 1, 2, 3, 6, 12 months
+- Rolling averages: 3, 6, 12 months
+- Seasonal encoding: sin/cos of month for cyclical patterns
+- Building density features
+- Grid static characteristics
+
+**Hyperparameters**:
+- `max_depth`: 4
+- `eta` (learning rate): 0.03
+- `subsample`: 0.7
+- `lambda` (L2 regularization): 2.0
+- `num_boost_round`: 600
+
+**Cross-Validation** (5 folds):
+- RMSE (Root Mean Squared Error): Track prediction error magnitude
+- MAE (Mean Absolute Error): Track average deviation
+- Hit Rate: % of correctly predicted crime hotspots
+- Jaccard Similarity: Spatial overlap of top 10% dangerous grids
+
+**Evaluation Results**:
+- Detailed metrics saved in `output/safety_folds_results.csv`
+- Models evaluate past performance to inform 2025-2026 forecasts
 
 ---
 
@@ -244,10 +301,20 @@ GET /recommendations?safety=0.4&convenience=0.3&distance=0.2&price=0.1
 
 ## 📝 Output Files
 
-- `final_grid_safety_2026.csv` - Grid safety scores and predictions
-- `future_monthly_predictions_2025_2026.csv` - Monthly crime forecasts
-- `safety_folds_results.csv` - Model cross-validation results
-- Database tables: listings, crime, grid, monthly_crime
+| File | Format | Purpose | Records |
+|------|--------|---------|---------|
+| `output/final_grid_safety_2026.csv` | CSV | Annual grid safety scores for 2026 | 1600+ grids |
+| `output/future_monthly_predictions_2025_2026.csv` | CSV | Monthly crime predictions by grid | 1600+ grids × 24 months |
+| `output/yearly_grid_safety_2020_2026.csv` | CSV | Historical + predicted annual scores | Full historical + forecast |
+| `output/safety_folds_results.csv` | CSV | Cross-validation metrics | RMSE, MAE, Hit Rate, Jaccard |
+| `output/agent_grid_context_basic.json` | JSON | Grid context for LLM agents | - |
+| `output/agent_grid_profile_index_2026.json` | JSON | Grid profiles for ranking | - |
+
+**Database Tables**:
+- `listing` - Rental listings with computed scores
+- `crime` - Raw crime incidents with locations
+- `grid` - LA grid cells with convenience/safety scores
+- `monthly_crime` - Aggregated monthly crime by grid and type
 
 ---
 
@@ -307,6 +374,35 @@ This project aims to explore:
 
 ---
 
-## 👤 Author
+## 📚 Key Technical Achievements
 
-Pengshao Ye
+1. **Full-Stack Integration**: Web scraping → geospatial processing → ML modeling → interactive UI
+2. **Temporal ML**: Time-series XGBoost with proper lag/seasonal features
+3. **Geospatial Sophistication**: 400m grid discretization, spatial joins, amenity buffering
+4. **Production API**: Flask REST endpoints with PostgreSQL backend
+5. **Multi-year Forecasting**: 24-month crime predictions (2025-2026)
+6. **Modern Frontend**: React + TypeScript with Vite build system
+7. **Personalization**: User-customizable recommendation weighting
+
+## 🔄 Data Flow
+
+```
+Craigslist HTML → selenium_scraper.py
+Crime CSV → crime_data_processing.py  
+OSM Amenities → osmnx library
+LA Shapefiles → map_division.py
+                    ↓
+            Geographic Indexing (400m grid)
+                    ↓
+            PostgreSQL Database
+                    ↓
+        Feature Engineering & ML
+                    ↓
+    XGBoost (Priority & Violence crimes)
+                    ↓
+    2025-2026 Forecasts + Scores
+                    ↓
+    Flask API + React UI
+                    ↓
+        Interactive Housing Search
+```

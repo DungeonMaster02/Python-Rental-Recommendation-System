@@ -8,7 +8,7 @@ import re
 import db_execution as dbe
 import crime_data_processing as cdp
 import connection
-
+import selenium_scraper as ss
 
 def get_grid_score_map() -> dict[int, tuple[float, float]]:
     conn = connection.get_connect()
@@ -43,21 +43,21 @@ def to_score(value, score_type):
 
 #Extract, Transform
 #listings
-def get_html():
+def choose_scrap():
     option = 0
     while int(option) not in [1,2]:
         option = input("Use static data or scrap single pages(type 1, 2):")
         if int(option) == 1:
             with open("../data/static_listing_data.txt", 'r') as f:
-                pages = [f.read()]
+                rounds = [f.read()]
+            return get_listing(rounds)
         elif int(option) == 2:
-            page_number = int(input("Please tell me how many pages do you want to scrap:"))
-            pages = scraper.scrap_html_multi(page_number)
+            round_number = int(input("Please tell me how many rounds do you want to scrap:"))
+            return ss.scrap(round_number)
         else:
             print("Please type again")
-    return pages
 
-def get_listing(pages: list):
+def get_listing(rounds: list):
     listing_list = list()
     usc = gpd.read_file("../data/usc_campus/usc_campus.shp")
     grid = gpd.read_file("../data/City_Boundary/LA_400m_grid.shp")
@@ -67,7 +67,7 @@ def get_listing(pages: list):
     # print(usc.crs) #EPSF: 4326
     usc_center = usc.to_crs("EPSG:32611")
     usc_center = usc_center.geometry.union_all().centroid
-    for page in pages:
+    for page in rounds:
         soup = BeautifulSoup(page, 'html.parser')
         rents = soup.find_all('li',class_ = 'cl-static-search-result')
         details = soup.find('script', id='ld_searchpage_results') #deatails from json
@@ -278,8 +278,7 @@ def get_distance(usc_center,longitude,latitude):
 
 
 if __name__ =="__main__":
-    html = get_html()
-    listing_details = get_listing(html)
+    listing_details = choose_scrap()
 
     listing_col = ['href','title','price','location_text','latitude','longitude','distance_score','convenience_score','safety_score','bedroom_number']
     crime_col = ['crime_id','latitude','longitude','date', 'type']
@@ -307,8 +306,11 @@ if __name__ =="__main__":
     # dbe.db_insert('grid', grid_col, insert_con)
 
     # Insert listing table
-    dbe.db_truncate('listing')
-    dbe.db_insert('listing', listing_col, listing_details)
+    print(len(listing_details))
+    verify = input("Do you want to insert the listing data into database? (type yes or no)")
+    if verify.lower() == "yes":
+        dbe.db_truncate('listing')
+        dbe.db_insert('listing', listing_col, listing_details)
 
     # #Insert monthly crime
     # dbe.db_truncate('monthly_crime')

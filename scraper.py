@@ -36,9 +36,9 @@ def scrap_to_local(number):
             print(f"HTTP error occurred: {err}")
     pages_str = '\n'.join(pages)
     with open('../data/static_listing_data_pro.txt','w') as f:
-        f.write(html)
+        f.write(pages_str)
 
-def scrap_html_multi(page_number): # this function doesn't work since craigslist only gives a solid static html page for simple scraping, I would try selenium if I have time
+def scrap_html_multi(page_number): # this function doesn't work now since craigslist only gives a solid static html page for simple scraping, I would try selenium if I have time
     headers = {'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36'}
     base_url = os.environ.get('Rent_URL')
     pages = list()
@@ -55,6 +55,7 @@ def scrap_html_multi(page_number): # this function doesn't work since craigslist
             print(f"HTTP error occurred: {err}")
             pass
     return pages
+
     
 if __name__ == "__main__":
-    html = scrap_to_local(1)
+    html = scrap_to_local(5) # set how many pages to scrape
