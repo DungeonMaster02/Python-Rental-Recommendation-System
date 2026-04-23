@@ -44,11 +44,11 @@ def get_monthly():
         .unstack(fill_value=0)
         .reset_index()
     )
-    result["priority_crime"] = result.get("Property", 0)
+    result["property_crime"] = result.get("Property", 0)
     result["violence_crime"] = result.get("Violence", 0)
-    result["crime_count"] = result["priority_crime"] + result["violence_crime"]
+    result["crime_count"] = result["property_crime"] + result["violence_crime"]
 
-    result = result[["grid_id", "month_start", "crime_count", "priority_crime", "violence_crime"]]
+    result = result[["grid_id", "month_start", "crime_count", "property_crime", "violence_crime"]]
     
     # add full grid-month combinations
     month_idx = pd.date_range(result["month_start"].min(), result["month_start"].max(), freq="MS")
@@ -59,13 +59,13 @@ def get_monthly():
     full_df = full_idx.to_frame(index=False)
 
     result = full_df.merge(result, on=["grid_id", "month_start"], how="left")
-    result[["crime_count", "priority_crime", "violence_crime"]] = (
-        result[["crime_count", "priority_crime", "violence_crime"]].fillna(0)
+    result[["crime_count", "property_crime", "violence_crime"]] = (
+        result[["crime_count", "property_crime", "violence_crime"]].fillna(0)
     )
     result["grid_id"] = result["grid_id"].astype(int)
     result["month_start"] = result["month_start"].dt.strftime("%Y-%m-%d")
     result["crime_count"] = result["crime_count"].astype(int)
-    result["priority_crime"] = result["priority_crime"].astype(int)
+    result["property_crime"] = result["property_crime"].astype(int)
     result["violence_crime"] = result["violence_crime"].astype(int)
 
     crime_monthly = result.itertuples(index=False, name=None)

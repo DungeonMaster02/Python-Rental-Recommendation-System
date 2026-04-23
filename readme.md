@@ -42,7 +42,7 @@ Users can explore housing options with detailed safety forecasts and amenity acc
 4. **Predictive Modeling** (`safety_main.py`, `safety_modeling.py`)
    - **XGBoost time-series models** for crime forecasting
    - Separate models for:
-     - Priority crimes (property crimes)
+     - Property crimes (property crimes)
      - Violence crimes
    - Monthly crime trend prediction by grid
    - Training period: 2010-2024, forecasting 2025-2026
@@ -102,7 +102,7 @@ Users can explore housing options with detailed safety forecasts and amenity acc
 ### Step 3: Amenity Scoring
 - Identify amenities within 400m buffer of each grid
 - Apply weighted scoring:
-  - Public transport: 3.0 (highest priority)
+  - Public transport: 3.0 (highest property)
   - Supermarkets/hospitals: 2.5
   - Restaurants/transit stops: 1.5-2.0
   - Parks/laundry: 1.0
@@ -259,7 +259,7 @@ curl "http://localhost:5000/api/recommend?safety=0.4&convenience=0.3&distance=0.
 **XGBoost Time-Series Models** trained on 2010-2024 monthly crime data:
 
 **Architecture**:
-- **Two separate models**: Priority crimes (property) vs Violence crimes
+- **Two separate models**: property crimes (property) vs Violence crimes
 - **Training data**: 2010-2024 monthly crime counts aggregated by 400m grid
 - **Prediction period**: Monthly forecasts for 2025-2026 (24 months)
 
@@ -398,7 +398,7 @@ LA Shapefiles → map_division.py
                     ↓
         Feature Engineering & ML
                     ↓
-    XGBoost (Priority & Violence crimes)
+    XGBoost (property & Violence crimes)
                     ↓
     2025-2026 Forecasts + Scores
                     ↓

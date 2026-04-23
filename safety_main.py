@@ -9,25 +9,25 @@ from safety_model_prepare import prepare_safety_data
 
 
 def train_safety_models(train_end: str = "2024-11-30"):
-    """Train priority-crime and violence-crime models."""
-    data = prepare_safety_data(["priority_crime", "violence_crime"])
+    """Train property-crime and violence-crime models."""
+    data = prepare_safety_data(["property_crime", "violence_crime"])
     panel = data["panel"].copy()
-    df_priority = data["priority_crime"].copy()
+    df_property = data["property_crime"].copy()
     df_violence = data["violence_crime"].copy()
 
     train_end_ts = pd.Timestamp(train_end)
-    p_train = df_priority[df_priority["month_start"] <= train_end_ts].copy()
+    p_train = df_property[df_property["month_start"] <= train_end_ts].copy()
     v_train = df_violence[df_violence["month_start"] <= train_end_ts].copy()
 
     if p_train.empty or v_train.empty:
         raise ValueError("No training rows found. Please check monthly_crime data range.")
 
-    priority_target = "priority_crime_target_next"
+    property_target = "property_crime_target_next"
     violence_target = "violence_crime_target_next"
 
     p_features = [
         c for c in p_train.columns
-        if c not in ["grid_id", "month_start", priority_target]
+        if c not in ["grid_id", "month_start", property_target]
     ]
     v_features = [
         c for c in v_train.columns
@@ -36,7 +36,7 @@ def train_safety_models(train_end: str = "2024-11-30"):
 
     pdtrain_reg = xgboost.DMatrix(
         p_train[p_features],
-        p_train[priority_target],
+        p_train[property_target],
         enable_categorical=True
     )
     vdtrain_reg = xgboost.DMatrix(
@@ -144,7 +144,7 @@ def predict_future_monthly(
     dynamic_cols = {
         "month_start",
         "crime_count",
-        "priority_crime",
+        "property_crime",
         "violence_crime",
         "month",
         "year",
@@ -166,7 +166,7 @@ def predict_future_monthly(
     for pred_month in pred_months:
         current_month = pred_month - pd.DateOffset(months=1)
 
-        p_feat = build_feature_for_month(work_panel, current_month, "priority_crime")
+        p_feat = build_feature_for_month(work_panel, current_month, "property_crime")
         v_feat = build_feature_for_month(work_panel, current_month, "violence_crime")
 
         px = ensure_feature_columns(p_feat, p_features)
@@ -175,14 +175,14 @@ def predict_future_monthly(
         pdtest_reg = xgboost.DMatrix(px, enable_categorical=True)
         vdtest_reg = xgboost.DMatrix(vx, enable_categorical=True)
 
-        pred_priority = np.clip(p_model.predict(pdtest_reg), a_min=0, a_max=None)
+        pred_property = np.clip(p_model.predict(pdtest_reg), a_min=0, a_max=None)
         pred_violence = np.clip(v_model.predict(vdtest_reg), a_min=0, a_max=None)
 
         pred_month_df = pd.DataFrame(
             {
                 "grid_id": p_feat["grid_id"].astype(int).to_numpy(),
                 "month_start": pd.Timestamp(pred_month),
-                "pred_priority": pred_priority,
+                "pred_property": pred_property,
                 "pred_violence": pred_violence,
             }
         )
@@ -190,9 +190,9 @@ def predict_future_monthly(
 
         next_rows = static_grid.copy()
         next_rows["month_start"] = pd.Timestamp(pred_month)
-        next_rows["priority_crime"] = pred_priority
+        next_rows["property_crime"] = pred_property
         next_rows["violence_crime"] = pred_violence
-        next_rows["crime_count"] = pred_priority + pred_violence
+        next_rows["crime_count"] = pred_property + pred_violence
 
         month_num = int(pred_month.month)
         year_num = int(pred_month.year)
@@ -215,12 +215,12 @@ def build_grid_safety_2026(future_monthly: pd.DataFrame) -> pd.DataFrame:
     pred_2026 = out[out["month_start"].dt.year == 2026].copy()
 
     annual = pred_2026.groupby("grid_id", as_index=False).agg(
-        pred_priority_annual=("pred_priority", "sum"),
+        pred_property_annual=("pred_property", "sum"),
         pred_violence_annual=("pred_violence", "sum"),
     )
 
     annual["risk"] = (
-        0.4 * annual["pred_priority_annual"] +
+        0.4 * annual["pred_property_annual"] +
         0.6 * annual["pred_violence_annual"]
     )
 
@@ -242,7 +242,7 @@ def build_grid_safety_2026(future_monthly: pd.DataFrame) -> pd.DataFrame:
     return annual[
         [
             "grid_id",
-            "pred_priority_annual",
+            "pred_property_annual",
             "pred_violence_annual",
             "risk",
             "risk_norm",

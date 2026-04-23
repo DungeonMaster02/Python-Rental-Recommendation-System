@@ -4,8 +4,8 @@ import numpy as np
 from sklearn.metrics import root_mean_squared_error, mean_absolute_error
 import pandas as pd
 
-data = prepare_safety_data(["priority_crime", "violence_crime"]) #containing pannel, priority crime and violence crime data
-df_priority = data["priority_crime"].copy()
+data = prepare_safety_data(["property_crime", "violence_crime"]) #containing pannel, property crime and violence crime data
+df_property = data["property_crime"].copy()
 df_violence = data["violence_crime"].copy()
 results = list()
 
@@ -47,9 +47,9 @@ folds = [
     },
 ]
 
-# Priority crime model preparation
-priority_target = "priority_crime_target_next"
-px = [c for c in df_priority.columns if c not in ["grid_id", "month_start", "priority_crime_target_next"]]
+# property crime model preparation
+property_target = "property_crime_target_next"
+px = [c for c in df_property.columns if c not in ["grid_id", "month_start", "property_crime_target_next"]]
 # Violence crime model preparation
 violence_target = "violence_crime_target_next"
 vx = [c for c in df_violence.columns if c not in ["grid_id", "month_start", "violence_crime_target_next"]]
@@ -60,15 +60,15 @@ for fold in folds:
     tend = fold["train_end"]
     vstart = fold["val_start"]
     vend = fold["val_end"]
-    p_train = df_priority[(df_priority["month_start"] >= tstart) & (df_priority["month_start"] <= tend)]
-    p_val = df_priority[(df_priority["month_start"] >= vstart) & (df_priority["month_start"] <= vend)]
+    p_train = df_property[(df_property["month_start"] >= tstart) & (df_property["month_start"] <= tend)]
+    p_val = df_property[(df_property["month_start"] >= vstart) & (df_property["month_start"] <= vend)]
     v_train = df_violence[(df_violence["month_start"] >= tstart) & (df_violence["month_start"] <= tend)]
     v_val = df_violence[(df_violence["month_start"] >= vstart) & (df_violence["month_start"] <= vend)]
 
     px_train = p_train[px]
-    py_train = p_train[priority_target]
+    py_train = p_train[property_target]
     px_val = p_val[px]
-    py_val = p_val[priority_target]
+    py_val = p_val[property_target]
     vx_train = v_train[vx]
     vy_train = v_train[violence_target]
     vx_val = v_val[vx]
@@ -109,11 +109,11 @@ for fold in folds:
     v_rmse = root_mean_squared_error(vy_val, v_preds) 
     p_mae = mean_absolute_error(py_val, p_preds) #mae = mean absolute error between true values and predictions
     v_mae = mean_absolute_error(vy_val, v_preds)
-    print(f"{fold['name']} - Priority Crime RMSE: {p_rmse:.4f}, MAE: {p_mae:.4f} | Violence Crime RMSE: {v_rmse:.4f}, MAE: {v_mae:.4f}")
+    print(f"{fold['name']} - Property Crime RMSE: {p_rmse:.4f}, MAE: {p_mae:.4f} | Violence Crime RMSE: {v_rmse:.4f}, MAE: {v_mae:.4f}")
 
     #get result
-    p_result = p_val[["grid_id", "month_start", priority_target]].copy()
-    p_result["pred_priority"] = p_preds
+    p_result = p_val[["grid_id", "month_start", property_target]].copy()
+    p_result["pred_property"] = p_preds
 
     v_result = v_val[["grid_id", "month_start", violence_target]].copy()
     v_result["pred_violence"] = v_preds
@@ -125,12 +125,12 @@ for fold in folds:
     )
 
     combined["actual_weighted_score"] = (
-        0.4 * combined[priority_target] +
+        0.4 * combined[property_target] +
         0.6 * combined[violence_target]
     )
 
     combined["pred_weighted_score"] = (
-        0.4 * combined["pred_priority"] +
+        0.4 * combined["pred_property"] +
         0.6 * combined["pred_violence"]
     )
 
@@ -144,19 +144,19 @@ for fold in folds:
     )
 
     annual = combined.groupby("grid_id", as_index=False).agg(
-    actual_priority_annual=(priority_target, "sum"),
-    pred_priority_annual=("pred_priority", "sum"),
+    actual_property_annual=(property_target, "sum"),
+    pred_property_annual=("pred_property", "sum"),
     actual_violence_annual=(violence_target, "sum"),
     pred_violence_annual=("pred_violence", "sum"),
     )
 
     annual["actual_risk"] = (
-        0.4 * annual["actual_priority_annual"] +
+        0.4 * annual["actual_property_annual"] +
         0.6 * annual["actual_violence_annual"]
     )
 
     annual["pred_risk"] = (
-        0.4 * annual["pred_priority_annual"] +
+        0.4 * annual["pred_property_annual"] +
         0.6 * annual["pred_violence_annual"]
     )
 
@@ -172,7 +172,7 @@ for fold in folds:
     jaccard = len(actual_hotspots & pred_hotspots) / len(actual_hotspots | pred_hotspots)
     print(
         f"{fold['name']} | "
-        f"Priority RMSE: {p_rmse:.4f}, MAE: {p_mae:.4f} | "
+        f"Property RMSE: {p_rmse:.4f}, MAE: {p_mae:.4f} | "
         f"Violence RMSE: {v_rmse:.4f}, MAE: {v_mae:.4f} | "
         f"Combined RMSE: {combined_rmse:.4f}, MAE: {combined_mae:.4f} | "
         f"Hit Rate: {hit_rate:.4f}, Jaccard: {jaccard:.4f}"
@@ -180,8 +180,8 @@ for fold in folds:
 
     results.append({
         "fold": fold["name"],
-        "priority_rmse": p_rmse,
-        "priority_mae": p_mae,
+        "property_rmse": p_rmse,
+        "property_mae": p_mae,
         "violence_rmse": v_rmse,
         "violence_mae": v_mae,
         "combined_rmse": combined_rmse,
@@ -198,7 +198,7 @@ print(results_df)
 
 print("\nAverage metrics:")
 print(results_df[[
-    "priority_rmse", "priority_mae",
+    "property_rmse", "property_mae",
     "violence_rmse", "violence_mae",
     "combined_rmse", "combined_mae",
     "hit_rate", "jaccard"   

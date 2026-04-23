@@ -283,7 +283,7 @@ if __name__ =="__main__":
     listing_col = ['href','title','price','location_text','latitude','longitude','distance_score','convenience_score','safety_score','bedroom_number']
     crime_col = ['crime_id','latitude','longitude','date', 'type']
     grid_col = ['grid_id', 'safety_score', 'convenience_score']
-    monthly_crime_col = ['grid_id', 'month_start','crime_count', 'priority_crime', 'violence_crime']
+    monthly_crime_col = ['grid_id', 'month_start','crime_count', 'property_crime', 'violence_crime']
 
     # crime = pd.read_csv("../data/Crime_Data_from_2010_2024.csv")
     # print(crime.columns)

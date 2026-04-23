@@ -110,7 +110,7 @@ export async function fetchModelMetrics(): Promise<ModelMetrics> {
 
   return {
     combined_rmse: data.combined_rmse,
-    priority_rmse: data.priority_rmse,
+    property_rmse: data.property_rmse,
     violence_rmse: data.violence_rmse,
     hit_rate: data.hit_rate,
     jaccard: data.jaccard,

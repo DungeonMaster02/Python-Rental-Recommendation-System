@@ -26,7 +26,7 @@ def get_monthly_panel() -> pd.DataFrame:
     try:
         panel = pd.read_sql(
             """
-            SELECT grid_id, month_start, crime_count, priority_crime, violence_crime
+            SELECT grid_id, month_start, crime_count, property_crime, violence_crime
             FROM monthly_crime
             """,
             conn,
@@ -37,7 +37,7 @@ def get_monthly_panel() -> pd.DataFrame:
     panel["grid_id"] = panel["grid_id"].astype(int)
     panel["month_start"] = pd.to_datetime(panel["month_start"])
 
-    for col in ["crime_count", "priority_crime", "violence_crime"]:
+    for col in ["crime_count", "property_crime", "violence_crime"]:
         panel[col] = panel[col].fillna(0).astype(int)
 
     return panel.sort_values(["grid_id", "month_start"]).reset_index(drop=True)

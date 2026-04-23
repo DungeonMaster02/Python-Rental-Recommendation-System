@@ -206,7 +206,7 @@ def register_api_routes(app: Flask) -> None:
                 {
                     "ok": True,
                     "combined_rmse": metrics.get("combined_rmse"),
-                    "priority_rmse": metrics.get("priority_rmse"),
+                    "property_rmse": metrics.get("property_rmse"),
                     "violence_rmse": metrics.get("violence_rmse"),
                     "hit_rate": metrics.get("hit_rate"),
                     "jaccard": metrics.get("jaccard"),
@@ -558,7 +558,7 @@ def build_crime_stats(safety_score: float) -> dict[str, int]:
     violence = max(0, int(round(total * 0.3)))
     property_crime = max(0, total - violence)
     return {
-        "priority": property_crime,
+        "property": property_crime,
         "violence": violence,
         "property": property_crime,
         "total": total,
@@ -783,7 +783,7 @@ def fetch_model_metrics() -> dict[str, Any]:
 
     metric_keys = [
         "combined_rmse",
-        "priority_rmse",
+        "property_rmse",
         "violence_rmse",
         "hit_rate",
         "jaccard",

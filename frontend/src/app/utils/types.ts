@@ -7,7 +7,7 @@ export interface Amenity {
 }
 
 export interface CrimeData {
-  priority: number;
+  property: number;
   violence: number;
   property: number;
   total: number;
@@ -62,7 +62,7 @@ export type GridSafetyGeoJson = FeatureCollection<Geometry, GridCell>;
 
 export interface ModelMetrics {
   combined_rmse: number | null;
-  priority_rmse: number | null;
+  property_rmse: number | null;
   violence_rmse: number | null;
   hit_rate: number | null;
   jaccard: number | null;

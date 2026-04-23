@@ -185,7 +185,7 @@ export function AboutPage() {
                   Combined RMSE: <strong>{metricOrNA(metrics.combined_rmse)}</strong>
                 </div>
                 <div className="rounded-lg border bg-gray-50 p-3 text-sm">
-                  Priority RMSE: <strong>{metricOrNA(metrics.priority_rmse)}</strong>
+                  Property RMSE: <strong>{metricOrNA(metrics.property_rmse)}</strong>
                 </div>
                 <div className="rounded-lg border bg-gray-50 p-3 text-sm">
                   Violence RMSE: <strong>{metricOrNA(metrics.violence_rmse)}</strong>
