@@ -1,5 +1,4 @@
 import connection
-import data_processing as dp
 
 def db_insert(tbname, columns, values):
     if not values:
@@ -24,7 +23,7 @@ def db_truncate(tbname):
     cur.close()
     conn.close()
 
-def db_update(tbname, updates, where_col, where_val):
+def update(tbname, updates, where_col, where_val):
     """
     updates: dict{update_col: update_val}
     where_col: positioning Field
@@ -39,9 +38,29 @@ def db_update(tbname, updates, where_col, where_val):
     cur.close()
     conn.close()
 
-if __name__=="__main__":
-    listing_col = ['listing_id','href','title','price','location_text','latitude','longitude','is_active','distance_score','convenience_score','safety_score']
-    crime_col = ['crime_id','latitude','longitude']
+def query(tbname, columns, where_col=None, where_val=None):
+    conn = connection.get_connect()
+    cur = conn.cursor()
+    col_str = ", ".join(columns)
+    sql = f"SELECT {col_str} FROM {tbname}"
+    if where_col and where_val:
+        sql += f" WHERE {where_col}=%s"
+        cur.execute(sql, (where_val,))
+    else:
+        cur.execute(sql)
+    results = cur.fetchall()
+    cur.close()
+    conn.close()
+    return results
 
-    crime_list = dp.get_safety()
-    db_insert('crime', crime_col, crime_list)
+def delete(tbname, where_col, where_val):
+    conn = connection.get_connect()
+    cur = conn.cursor()
+    sql = f"DELETE FROM {tbname} WHERE {where_col}=%s"
+    cur.execute(sql, (where_val,))
+    conn.commit()
+    cur.close()
+    conn.close()
+
+if __name__=="__main__":
+    pass

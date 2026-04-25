@@ -9,7 +9,6 @@ export interface Amenity {
 export interface CrimeData {
   property: number;
   violence: number;
-  property: number;
   total: number;
 }
 

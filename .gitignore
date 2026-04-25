@@ -58,11 +58,9 @@ cache/
 *.dbf
 *.prj
 *.cpg
-*.json
 
-# Output files (optional - uncomment if you want to track)
-# output/
-# *.csv
+# Generated output files
+output/
 
 # Temporary files
 *.tmp
@@ -81,5 +79,4 @@ Thumbs.db
 
 # Node modules (if frontend uses npm)
 node_modules/
-package-lock.json
 yarn.lock

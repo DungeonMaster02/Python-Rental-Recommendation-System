@@ -255,11 +255,11 @@ def build_grid_safety_2026(future_monthly: pd.DataFrame) -> pd.DataFrame:
 
 
 def save_grid_safety_to_db(final_df: pd.DataFrame):
-    """Save safety_score into grid table using db_update."""
+    """Save safety_score into grid table using update."""
     for row in final_df.itertuples(index=False):
         grid_id = int(row.grid_id)
         safety_score = float(row.safety_score)
-        dbe.db_update('grid', {'safety_score': safety_score}, 'grid_id', grid_id)
+        dbe.update('grid', {'safety_score': safety_score}, 'grid_id', grid_id)
 
 
 if __name__ == "__main__":

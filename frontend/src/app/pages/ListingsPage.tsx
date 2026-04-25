@@ -25,7 +25,7 @@ export function ListingsPage() {
 
   const [priceRange, setPriceRange] = useState<[number, number]>([0, PRICE_RANGE_MAX]);
   const [minSafety, setMinSafety] = useState(0);
-  const [maxDistanceMiles, setMaxDistanceMiles] = useState(12);
+  const [maxDistanceKm, setMaxDistanceKm] = useState(12);
   const [favorites, setFavorites] = useState<Set<number>>(() => new Set(readFavoriteIds()));
 
   useEffect(() => {
@@ -37,8 +37,8 @@ export function ListingsPage() {
       if (listing.price < priceRange[0] || listing.price > priceRange[1]) return false;
       if (listing.safety_score < minSafety) return false;
 
-      const distanceMiles = (12 * (100 - listing.distance_score)) / 100;
-      if (distanceMiles > maxDistanceMiles) return false;
+      const distanceKm = (12 * (100 - listing.distance_score)) / 100;
+      if (distanceKm > maxDistanceKm) return false;
 
       const query = searchQuery.trim().toLowerCase();
       if (!query) return true;
@@ -67,7 +67,7 @@ export function ListingsPage() {
     }
 
     return filtered;
-  }, [listings, priceRange, minSafety, maxDistanceMiles, searchQuery, sortBy]);
+  }, [listings, priceRange, minSafety, maxDistanceKm, searchQuery, sortBy]);
 
   const mapListings = useMemo(() => filteredListings.slice(0, 250), [filteredListings]);
   const mapCenter = useMemo<[number, number]>(() => {
@@ -89,14 +89,14 @@ export function ListingsPage() {
   const resetFilters = () => {
     setPriceRange([0, PRICE_RANGE_MAX]);
     setMinSafety(0);
-    setMaxDistanceMiles(12);
+    setMaxDistanceKm(12);
     setSearchQuery('');
   };
 
   const activeFilterCount =
     (priceRange[0] > 0 || priceRange[1] < PRICE_RANGE_MAX ? 1 : 0)
     + (minSafety > 0 ? 1 : 0)
-    + (maxDistanceMiles < 12 ? 1 : 0);
+    + (maxDistanceKm < 12 ? 1 : 0);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -184,17 +184,17 @@ export function ListingsPage() {
                     </div>
 
                     <div>
-                      <Label>Maximum Distance to USC (mi)</Label>
+                      <Label>Maximum Distance to USC (km)</Label>
                       <div className="pt-4">
                         <Slider
                           min={0.5}
                           max={12}
                           step={0.5}
-                          value={[maxDistanceMiles]}
-                          onValueChange={(v) => setMaxDistanceMiles(v[0])}
+                          value={[maxDistanceKm]}
+                          onValueChange={(v) => setMaxDistanceKm(v[0])}
                           className="mb-2"
                         />
-                        <div className="text-sm text-gray-600">{maxDistanceMiles.toFixed(1)} miles</div>
+                        <div className="text-sm text-gray-600">{maxDistanceKm.toFixed(1)} km</div>
                       </div>
                     </div>
 

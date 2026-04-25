@@ -46,7 +46,7 @@ def to_score(value, score_type):
 def choose_scrap():
     option = 0
     while int(option) not in [1,2]:
-        option = input("Use static data or scrap single pages(type 1, 2):")
+        option = input("Use static data or scrap pages(type 1, 2):")
         if int(option) == 1:
             with open("../data/static_listing_data.txt", 'r') as f:
                 rounds = [f.read()]
@@ -56,6 +56,33 @@ def choose_scrap():
             return ss.scrap(round_number)
         else:
             print("Please type again")
+
+def get_scores():
+    usc = gpd.read_file("../data/usc_campus/usc_campus.shp")
+    grid = gpd.read_file("../data/City_Boundary/LA_400m_grid.shp")
+    grid = grid.to_crs("EPSG:32611").reset_index(drop=True)
+    grid["grid_id"] = grid.index + 1
+    grid_score_map = get_grid_score_map()
+    # print(usc.crs) #EPSF: 4326
+    usc_center = usc.to_crs("EPSG:32611")
+    usc_center = usc_center.geometry.union_all().centroid
+    listings = dbe.query('listing', ['href','latitude','longitude'])
+    for href, latitude, longitude in listings:
+        if latitude is None or longitude is None:
+            dbe.delete('listing', 'href', href)
+            continue
+        distance_score = to_score(get_distance(usc_center,longitude,latitude),"distance")
+        listing_point = gpd.GeoSeries(
+            gpd.points_from_xy([longitude], [latitude]),
+            crs="EPSG:4326"
+        ).to_crs("EPSG:32611").iloc[0]
+        matched_grid = grid.loc[grid.geometry.intersects(listing_point), "grid_id"]
+        if matched_grid.empty:
+            convenience_score, safety_score = 0, 0
+        else:
+            grid_id = int(matched_grid.iloc[0])
+            convenience_score, safety_score = grid_score_map.get(grid_id, (0, 0)) #default to 0 if grid_id not found
+        dbe.update('listing', {'distance_score': distance_score, 'convenience_score': convenience_score, 'safety_score': safety_score}, 'href', href)
 
 def get_listing(rounds: list):
     listing_list = list()
@@ -311,7 +338,8 @@ if __name__ =="__main__":
     if verify.lower() == "yes":
         dbe.db_truncate('listing')
         dbe.db_insert('listing', listing_col, listing_details)
-
+        ss.scrap_detail()
+        get_scores()
     # #Insert monthly crime
     # dbe.db_truncate('monthly_crime')
     # monthly_list = cdp.get_monthly()

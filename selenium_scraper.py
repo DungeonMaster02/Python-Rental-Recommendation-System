@@ -2,11 +2,15 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from dotenv import load_dotenv
 import os
-import data_processing as dp
 import geopandas as gpd
 import json
 import re
-from selenium.common.exceptions import StaleElementReferenceException
+from selenium.common.exceptions import StaleElementReferenceException, WebDriverException, TimeoutException
+import db_execution as db
+from selenium.webdriver.support.ui import WebDriverWait
+import time
+import random
+from selenium.webdriver.support import expected_conditions as EC
 
 load_dotenv()
 
@@ -17,24 +21,18 @@ def setup():
     return driver
 
 def scrap(pages:int):
-    usc = gpd.read_file("../data/usc_campus/usc_campus.shp")
-    grid = gpd.read_file("../data/City_Boundary/LA_400m_grid.shp")
-    grid = grid.to_crs("EPSG:32611").reset_index(drop=True)
-    grid["grid_id"] = grid.index + 1
-    grid_score_map = dp.get_grid_score_map()
-    # print(usc.crs) #EPSF: 4326
-    usc_center = usc.to_crs("EPSG:32611")
-    usc_center = usc_center.geometry.union_all().centroid
-
     driver = setup()
     listings = list()
-    unique = set() # make sure the listings are unique
-    driver.implicitly_wait(3)
-
+    unique = set()
+    wait = WebDriverWait(driver, 10)
     try:
+        wait.until(
+            lambda d: len(d.find_elements(By.CSS_SELECTOR, "div.cl-search-result")) > 0
+        )
+
         for i in range(pages):
-            driver.implicitly_wait(3)
-            items = driver.find_elements(By.CSS_SELECTOR, "div.cl-search-result")
+            current_items = driver.find_elements(By.CSS_SELECTOR, "div.cl-search-result")
+            item_count = len(current_items)
 
             pid_snapshot = driver.execute_script("""
                 return Array.from(document.querySelectorAll('div.cl-search-result'))
@@ -44,26 +42,28 @@ def scrap(pages:int):
 
             first_pid = pid_snapshot[0] if pid_snapshot else None
             last_pid = pid_snapshot[-1] if pid_snapshot else None
-            print(f"round {i+1}: first_pid={first_pid}, last_pid={last_pid}, collected={len(listings)}")
-            script_text = driver.find_element(By.ID, "ld_searchpage_results").get_attribute("innerHTML")
-            data = json.loads(script_text)
-            item_list = data.get("itemListElement", [])
-            for j in range(min(len(items), len(item_list))):
-                detail = item_list[j].get('item', {})
 
+            print(
+                f"round {i + 1}: first_pid={first_pid}, "
+                f"last_pid={last_pid}, visible={item_count}, collected={len(listings)}"
+            )
+
+            for j in range(item_count):
                 try:
-                    item = items[j]
-                    pid = item.get_attribute("data-pid")
-                except StaleElementReferenceException:
                     items = driver.find_elements(By.CSS_SELECTOR, "div.cl-search-result")
+
                     if j >= len(items):
                         continue
+
                     item = items[j]
-                    try:
-                        pid = item.get_attribute("data-pid")
-                    except StaleElementReferenceException:
+                    pid = item.get_attribute("data-pid")
+
+                    if not pid:
                         continue
-                except:
+
+                except StaleElementReferenceException:
+                    continue
+                except Exception:
                     continue
 
                 if pid in unique:
@@ -71,30 +71,42 @@ def scrap(pages:int):
 
                 try:
                     href_elements = item.find_elements(By.CSS_SELECTOR, "a.posting-title")
-                except StaleElementReferenceException:
-                    items = driver.find_elements(By.CSS_SELECTOR, "div.cl-search-result")
-                    if j >= len(items):
+
+                    if not href_elements:
+                        unique.add(pid)
+                        print(f"skip pid={pid}: missing href")
                         continue
-                    item = items[j]
+
+                    href = href_elements[0].get_attribute("href")
+                    title = href_elements[0].text.strip()
+
+                except StaleElementReferenceException:
                     try:
+                        items = driver.find_elements(By.CSS_SELECTOR, "div.cl-search-result")
+
+                        if j >= len(items):
+                            continue
+
+                        item = items[j]
                         href_elements = item.find_elements(By.CSS_SELECTOR, "a.posting-title")
+
+                        if not href_elements:
+                            unique.add(pid)
+                            print(f"skip pid={pid}: missing href")
+                            continue
+
+                        href = href_elements[0].get_attribute("href")
+                        title = href_elements[0].text.strip()
+
                     except StaleElementReferenceException:
                         continue
-
-                if not href_elements:
-                    unique.add(pid)
-                    print(f"skip pid={pid}: missing href")
-                    continue
-
-                href = href_elements[0].get_attribute("href")
-                title = detail.get("name", "").strip()
 
                 try:
                     price_elements = item.find_elements(By.CSS_SELECTOR, "span.priceinfo")
                 except StaleElementReferenceException:
                     items = driver.find_elements(By.CSS_SELECTOR, "div.cl-search-result")
                     if j >= len(items):
-                        continue # this means the item disappeared after we found it, we can just skip this item
+                        continue
                     item = items[j]
                     try:
                         price_elements = item.find_elements(By.CSS_SELECTOR, "span.priceinfo")
@@ -105,23 +117,27 @@ def scrap(pages:int):
                     unique.add(pid)
                     print(f"skip pid={pid}: missing price")
                     continue
+
                 price_str = price_elements[0].text.strip()
                 price = int(price_str.replace("$", "").replace(",", ""))
-                location = detail.get("address", {}).get("addressLocality", "").strip()
-                latitude = detail.get("latitude", 0)
-                longitude = detail.get("longitude", 0)
-                distance_score = dp.to_score(dp.get_distance(usc_center, longitude, latitude), "distance")
-                listing_point = gpd.GeoSeries(
-                    gpd.points_from_xy([longitude], [latitude]),
-                    crs="EPSG:4326"
-                ).to_crs("EPSG:32611").iloc[0]
-                matched_grid = grid.loc[grid.geometry.intersects(listing_point), "grid_id"]
-                if matched_grid.empty:
-                    convenience_score, safety_score = 0, 0
-                else:
-                    grid_id = int(matched_grid.iloc[0])
-                    convenience_score, safety_score = grid_score_map.get(grid_id, (0, 0)) #default to 0 if grid_id not found
-                bedroom = detail.get("numberOfBedrooms", 1)
+
+                location_elements = item.find_elements(By.CSS_SELECTOR, ".location")
+                location = location_elements[0].text.strip() if location_elements else ""
+
+                latitude = 0
+                longitude = 0
+                distance_score = 0
+                convenience_score = 0
+                safety_score = 0
+
+                housing_elements = item.find_elements(By.CSS_SELECTOR, ".housing")
+                housing_text = housing_elements[0].text.strip() if housing_elements else ""
+
+                bedroom = 1
+                bedroom_match = re.search(r"(\d+)\s*br", housing_text, re.IGNORECASE)
+                if bedroom_match:
+                    bedroom = int(bedroom_match.group(1))
+
                 unique.add(pid)
                 listings.append((
                     href,
@@ -134,8 +150,9 @@ def scrap(pages:int):
                     convenience_score,
                     safety_score,
                     bedroom,
-                ))     
-            prev_count = len(items)
+                ))
+
+            prev_count = len(driver.find_elements(By.CSS_SELECTOR, "div.cl-search-result"))
 
             driver.execute_script("""
                 const items = document.querySelectorAll('div.cl-search-result');
@@ -149,7 +166,83 @@ def scrap(pages:int):
             print(f"round {i+1}: before={prev_count}, after={new_count}, collected={len(listings)}")
     finally:
         driver.quit()
+
     return listings
+def delay(min_seconds=3.5, max_seconds=6.5):
+    time.sleep(random.uniform(min_seconds, max_seconds))
+
+def scroll(driver):
+    scroll_times = random.randint(1, 3)
+
+    for _ in range(scroll_times):
+        driver.execute_script(
+            "window.scrollBy(0, arguments[0]);",
+            random.randint(250, 800)
+        )
+        time.sleep(random.uniform(0.5, 1.5))
+
+def scrap_detail():
+    driver = webdriver.Chrome()
+    driver.set_page_load_timeout(20) 
+    listings = db.query('listing', ['href'])
+    wait = WebDriverWait(driver, 10)
+    count = 0
+
+    try:
+        for (url,) in listings:
+            count += 1
+            delay(2.5, 4.5)
+            netcount = 0
+            success = 0
+            while netcount < 6:
+                try:
+                    driver.get(url)
+                    delay(1.5, 3.5)
+                    scroll(driver)
+                    success = 1
+                    break
+                except (WebDriverException, TimeoutException):
+                    print(f"Network/page load failed. Waiting 10 seconds and retrying {netcount + 1}/6...")
+                    netcount += 1
+                    time.sleep(10)
+                    if netcount == 6:
+                        conti = input("Do you want to continue scraping?")
+                        if conti.lower() == 'yes':
+                            driver.quit()
+                            driver = webdriver.Chrome()
+                            driver.set_page_load_timeout(20) 
+                            netcount = 0
+                            continue
+                        else:
+                            print(f"Skip: {url}")
+                            db.delete('listing', 'href', url)
+                            break 
+            if not success:
+                continue
+            try:
+                element = wait.until(
+                    EC.presence_of_element_located((By.ID, "ld_posting_data"))
+                )
+            except:
+                print("Missing page, deleting from database")
+                db.delete('listing', 'href', url)
+                continue
+
+            try:
+                element = driver.find_element(By.ID, "ld_posting_data")
+                json_data = element.get_attribute("innerHTML")
+                data = json.loads(json_data)
+                latitude = data["latitude"]
+                longitude = data["longitude"]
+            except:
+                print(f"Missing latitude/longitude for {url}")
+                db.delete('listing', 'href', url)
+                continue
+            db.update('listing', {'latitude': latitude, 'longitude': longitude}, 'href', url)
+            print(f"Processed {count}/{len(listings)}")
+    finally:
+        driver.quit()
+
 
 if __name__ == "__main__":
     pass

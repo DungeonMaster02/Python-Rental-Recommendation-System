@@ -35,7 +35,7 @@ def scrap_to_local(number):
         except requests.exceptions.HTTPError as err:
             print(f"HTTP error occurred: {err}")
     pages_str = '\n'.join(pages)
-    with open('../data/static_listing_data_pro.txt','w') as f:
+    with open('../data/static_listing_data.txt','w') as f:
         f.write(pages_str)
 
 def scrap_html_multi(page_number): # this function doesn't work now since craigslist only gives a solid static html page for simple scraping, I would try selenium if I have time
