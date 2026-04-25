@@ -333,13 +333,13 @@ if __name__ =="__main__":
     # dbe.db_insert('grid', grid_col, insert_con)
 
     # Insert listing table
-    print(len(listing_details))
-    verify = input("Do you want to insert the listing data into database? (type yes or no)")
-    if verify.lower() == "yes":
-        dbe.db_truncate('listing')
-        dbe.db_insert('listing', listing_col, listing_details)
-        ss.scrap_detail()
-        get_scores()
+    # print(len(listing_details))
+    # verify = input("Do you want to insert the listing data into database? (type yes or no)")
+    # if verify.lower() == "yes":
+    #     dbe.db_truncate('listing')
+    #     dbe.db_insert('listing', listing_col, listing_details)
+    #     ss.scrap_detail()
+    get_scores()
     # #Insert monthly crime
     # dbe.db_truncate('monthly_crime')
     # monthly_list = cdp.get_monthly()

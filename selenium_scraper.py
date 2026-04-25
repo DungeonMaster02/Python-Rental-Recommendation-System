@@ -185,7 +185,7 @@ def scrap_detail():
     driver = webdriver.Chrome()
     driver.set_page_load_timeout(20) 
     listings = db.query('listing', ['href'])
-    wait = WebDriverWait(driver, 10)
+
     count = 0
 
     try:
@@ -220,6 +220,7 @@ def scrap_detail():
             if not success:
                 continue
             try:
+                wait = WebDriverWait(driver, 10)
                 element = wait.until(
                     EC.presence_of_element_located((By.ID, "ld_posting_data"))
                 )
