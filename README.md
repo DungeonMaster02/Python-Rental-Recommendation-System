@@ -267,21 +267,3 @@ curl "http://localhost:5000/api/recommend?safety=0.4&convenience=0.3&distance=0.
 | `output/final_grid_safety_2026.csv` | Annual 2026 grid safety scores |
 | `output/future_monthly_predictions_2025_2026.csv` | Monthly 2025-2026 crime forecasts |
 | `output/safety_folds_results.csv` | Validation metrics |
-
-## Reproducibility Notes
-
-- `data/`, `output/`, OSM caches, and generated frontend files can be large and are not intended to be committed directly.
-- `frontend/package.json` and `frontend/package-lock.json` should be committed so the frontend can be rebuilt.
-- `.env` should not be committed because it contains local database settings.
-- To fully rebuild the safety features, remove cached OSM and output files before rerunning the pipeline.
-
-## Limitations
-
-- Listing quality is evaluated from location and available listing metadata, not interior condition or image quality.
-- Craigslist scraping can be affected by site layout changes, anti-bot measures, or network restrictions.
-- BeautifulSoup static fallback may return less complete listing details when dynamic content is not fully present in raw HTML.
-- Safety predictions are statistical forecasts and should not be interpreted as guarantees of personal safety.
-
-## Authors
-
-USC DSCI-510 Final Project

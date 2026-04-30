@@ -246,6 +246,7 @@ def main():
             dp.get_scores()
         else:
             print("Listing data not updated.")
+    print("Data pipeline completed.")
     
 
 if __name__ == "__main__":
