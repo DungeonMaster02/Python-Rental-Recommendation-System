@@ -502,4 +502,7 @@ if __name__ == "__main__":
 
     # print("\nhead:")
     # print(data["crime_count"].head())
-    pass
+    data = prepare_safety_data(["crime_count"])
+    print("safety data ready")
+    print("panel shape:", data["panel"].shape)
+    print("crime_count shape:", data["crime_count"].shape)

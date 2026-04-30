@@ -8,29 +8,28 @@ The system helps users compare rentals by safety, convenience, distance to USC, 
 
 ```text
 code/
+├── data_pipeline.py                # Orchestrates database setup, data loading, and safety modeling
 ├── main.py                         # Flask API and frontend static server
 ├── data_processing.py              # Listing processing and scoring
 ├── crime_data_processing.py        # Crime data merge and database loading
 ├── safety_model_prepare.py         # Spatial and time-series feature engineering
 ├── safety_main.py                  # XGBoost training and 2025-2026 forecasting
 ├── safety_modeling.py              # Model validation script
-├── scraper.py                      # Backup BeautifulSoup scraper (static HTML mode)
 ├── selenium_scraper.py             # Primary Selenium scraper (dynamic pages)
-├── safetymap.py                    # Grid safety export utilities
+├── scraper.py                      # Static listing fallback scraper
 ├── connection.py                   # PostgreSQL connection helper
 ├── db_execution.py                 # Database insert/query helpers
-├── map_division.py               # LA 400m grid construction
+├── map_division.py                 # LA 400m grid construction
 ├── requirements.txt                # Python dependencies
 └── frontend/                       # React + TypeScript frontend
     ├── package.json
     ├── package-lock.json
-    ├── src/
-    └── dist/                       # Generated Vite build, ignored by git
+    └── src/
 
 data/
 ├── Crime_Data_from_2010_to_2019_*.csv
 ├── Crime_Data_from_2020_to_2024_*.csv
-├── Crime_Data_from_2010_2024.csv
+├── Crime_Data_from_2010_to_2024.csv
 ├── City_Boundary/
 ├── Building_Footprints-shp/
 ├── usc_campus/
@@ -40,7 +39,6 @@ data/
 output/
 ├── final_grid_safety_2026.csv
 ├── future_monthly_predictions_2025_2026.csv
-├── yearly_grid_safety_2020_2026.csv
 └── safety_folds_results.csv
 ```
 
@@ -68,7 +66,7 @@ Required data files should be placed under the project-level `data/` directory, 
 
 ### 2. Crime Data Harmonization
 
-`crime_data_processing.py` combines the 2010-2019 and 2020-2024 LA crime files into `data/Crime_Data_from_2010_2024.csv`. Duplicate incidents are removed by `DR_NO`.
+`crime_data_processing.py` combines the 2010-2019 and 2020-2024 LA crime files into `data/Crime_Data_from_2010_to_2024.csv`. Duplicate incidents are removed by `DR_NO`.
 
 The modeling pipeline uses `DR_NO`, `LAT`, `LON`, `DATE OCC`, and `Crm Cd Desc`. It parses coordinates and dates, removes invalid or zero coordinates, converts points from `EPSG:4326` to the grid CRS, and spatially joins incidents to grid cells.
 
@@ -193,10 +191,18 @@ python connection.py
 
 ## Usage
 
-Run the data and modeling pipeline stage by stage:
+Run the full data and modeling pipeline:
 
 ```bash
 cd code
+python data_pipeline.py
+```
+
+The pipeline checks required input files, initializes database tables, builds missing grid and crime data, prepares monthly crime data, and runs the safety forecasting stage when outputs are missing.
+
+Optional stage-by-stage commands for debugging:
+
+```bash
 python map_division.py
 python crime_data_processing.py
 python safety_model_prepare.py
@@ -234,7 +240,7 @@ Default server configuration:
 
 - Host: `127.0.0.1`
 - Port: `5000`
-- Frontend build: `code/frontend/dist`
+- Build the frontend with `npm run build` before serving the web app.
 
 ## API Endpoints
 
@@ -260,7 +266,6 @@ curl "http://localhost:5000/api/recommend?safety=0.4&convenience=0.3&distance=0.
 |------|---------|
 | `output/final_grid_safety_2026.csv` | Annual 2026 grid safety scores |
 | `output/future_monthly_predictions_2025_2026.csv` | Monthly 2025-2026 crime forecasts |
-| `output/yearly_grid_safety_2020_2026.csv` | Historical and predicted annual safety scores |
 | `output/safety_folds_results.csv` | Validation metrics |
 
 ## Reproducibility Notes

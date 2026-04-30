@@ -133,7 +133,7 @@ def get_listing(rounds: list):
 
 #safety
 def get_safety() -> list[tuple[int, float, float]]:
-    data = pd.read_csv("../data/Crime_Data_from_2010_2024.csv")
+    data = pd.read_csv("../data/Crime_Data_from_2010_to_2024.csv")
     # print(crime)
     # shape = crime.shape
     # print(shape)
@@ -158,7 +158,7 @@ def get_safety() -> list[tuple[int, float, float]]:
     return crime_list
 
 def crime_count() -> list[tuple[int,int]]:
-    data = pd.read_csv("../data/Crime_Data_from_2010_2024.csv")
+    data = pd.read_csv("../data/Crime_Data_from_to_2024.csv")
     data.drop_duplicates(inplace=True)
 
     crime_gdf = gpd.GeoDataFrame(
@@ -312,7 +312,7 @@ if __name__ =="__main__":
     grid_col = ['grid_id', 'safety_score', 'convenience_score']
     monthly_crime_col = ['grid_id', 'month_start','crime_count', 'property_crime', 'violence_crime']
 
-    # crime = pd.read_csv("../data/Crime_Data_from_2010_2024.csv")
+    # crime = pd.read_csv("../data/Crime_Data_from_2010_to_2024.csv")
     # print(crime.columns)
     # # Insert crime table
     # dbe.db_truncate('crime')

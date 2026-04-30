@@ -1,6 +1,8 @@
 import pandas as pd
 import connection
 import geopandas as gpd
+import glob
+from pathlib import Path
 
 def combine(datafile1,datafile2):
     data1 = pd.read_csv(datafile1)
@@ -12,7 +14,7 @@ def combine(datafile1,datafile2):
     data = pd.concat([data1, data2], ignore_index=True)
     data = data.drop_duplicates(subset=["DR_NO"])
 
-    data.to_csv("../data/Crime_Data_from_2010_2024.csv", index=False)
+    data.to_csv("../data/Crime_Data_from_2010_to_2024.csv", index=False)
 
 def get_monthly():
     conn = connection.get_connect()
@@ -122,13 +124,10 @@ def classify(desc):
     return 'Violence' if desc in violence_list else 'Property'
 
 if __name__=="__main__":
-    try:
-        open("../data/Crime_Data_from_2010_2024.csv","r")
-    except FileNotFoundError:
-        datafile1 = "../data/Crime_Data_from_2010_to_2019_20260407.csv"
-        datafile2 = "../data/Crime_Data_from_2020_to_2024_20260325.csv"
-        combine(datafile1,datafile2)
-    df = pd.read_csv("../data/Crime_Data_from_2010_2024.csv")
-    # crime_types = sorted(df['Crm Cd Desc'].dropna().unique())
-    # for i, crime in enumerate(crime_types):
-    #     print(f"{i+1}. {crime}")
+    combined = Path("../data/Crime_Data_from_2010_to_2024.csv")
+    if not combined.exists():
+        datafile1 = glob.glob("../data/Crime_Data_from_2010_to_2019*.csv")
+        datafile2 = glob.glob("../data/Crime_Data_from_2020_to_2024*.csv")
+        if not datafile1 or not datafile2:
+            raise FileNotFoundError("Missing raw crime CSV files.")
+        combine(datafile1[0], datafile2[0])
