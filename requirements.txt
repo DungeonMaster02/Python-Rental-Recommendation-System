@@ -1,0 +1,13 @@
+beautifulsoup4
+flask
+geopandas
+numpy
+osmnx
+pandas
+psycopg2-binary
+python-dotenv
+requests
+scikit-learn
+selenium
+shapely
+xgboost

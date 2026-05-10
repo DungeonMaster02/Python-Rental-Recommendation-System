@@ -1,0 +1,7 @@
+.DS_Store
+Submission2.zip
+documents
+results
+data/*
+!data/.gitkeep
+__pycache__/
