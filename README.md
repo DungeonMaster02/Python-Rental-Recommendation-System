@@ -26,8 +26,8 @@ The repository currently contains:
 - Raw and processed data folders under the project-level `data/` directory.
 - Model and prediction outputs under the project-level `results/` directory.
 
-The only README in the project is this file, located in `src/backend/`. Unless a
-command explicitly says otherwise, run backend commands from the project root.
+Unless a command explicitly says otherwise, run backend commands from the
+project root.
 
 ## Quick Start
 
@@ -130,6 +130,22 @@ http://127.0.0.1:5000
         |-- connection.py
         `-- db_execution.py
 ```
+
+      ## Assignment Mapping
+
+      The course rubric expects a set of scripts named `get_data.py`, `clean_data.py`,
+      `integrate_data.py`, and `analyze_visualize.py`. This project uses the
+      following equivalents under `src/backend/`:
+
+      | Required Script | Project Equivalent | Purpose |
+      | --- | --- | --- |
+      | `get_data.py` | `scraper.py`, `selenium_scraper.py` | Collect Craigslist listing data |
+      | `clean_data.py` | `crime_data_processing.py`, `data_processing.py` | Clean crime + listing data |
+      | `integrate_data.py` | `data_pipeline.py` | Orchestrate data loads + database integration |
+      | `analyze_visualize.py` | `safety_main.py`, `safety_modeling.py` | Modeling + analysis outputs |
+
+      If a TA is following the standard script names, point them to the equivalents
+      above. The main pipeline entry point is still `src/backend/data_pipeline.py`.
 
 ## Data Sources
 
